@@ -94,8 +94,6 @@ MakeID(int64 IDin, int newcard) {
   }
   if (getout) return 0; // duplicated another card (ignore this one)
 
-  
-
   // for suit to be significant, need to have n-2 of same suit
   int needsuited = numcards - 2;
   if (numcards > 4) {
@@ -122,9 +120,7 @@ MakeID(int64 IDin, int newcard) {
     }
   }
 
-  
-
-// clang-format off
+  // clang-format off
   // Sort Using XOR.  Netwk for N=7, using Bose-Nelson Algorithm:
   // Thanks to the thread!
   #define SWAP(I,J) {if (wk[I] < wk[J]) {wk[I]^=wk[J]; wk[J]^=wk[I]; wk[I]^=wk[J];}}
@@ -219,97 +215,101 @@ DoEval(int64 IDin) {
   memset(wk, 0, sizeof(wk));
   memset(holdcards, 0, sizeof(holdcards));
 
-  if (IDin) { // if I have a good ID then do it...
-    for (cardnum = 0; cardnum < 7; cardnum++) {
-      // convert all 7 cards (0s are ok)
-      holdcards[cardnum] = (int) ((IDin >> (8 * cardnum)) & 0xff);
-      if (holdcards[cardnum] == 0) break; // once I hit a 0 I know I am done
-      numevalcards++;
-      // if not 0 then count the card
-      if (suit = holdcards[cardnum] & 0xf) {
-        // find out what suit (if any) was significant and remember it
-        mainsuit = suit;
-      }
-    }
-
-    // (DoEval)
-
-    for (cardnum = 0; cardnum < numevalcards; cardnum++) {
-      // just have numcards...
-      wkcard = holdcards[cardnum];
-
-      // convert to cactus kevs way!!
-      // ref http://www.suffecool.net/poker/evaluator.html
-      //   +--------+--------+--------+--------+
-      //   |xxxbbbbb|bbbbbbbb|cdhsrrrr|xxpppppp|
-      //   +--------+--------+--------+--------+
-      //   p = prime number of rank (deuce=2,trey=3,four=5,five=7,...,ace=41)
-      //   r = rank of card (deuce=0,trey=1,four=2,five=3,...,ace=12)
-      //   cdhs = suit of card
-      //   b = bit turned on depending on rank of card
-
-      rank = (wkcard >> 4) - 1; // my rank is top 4 bits 1-13 so convert
-      suit = wkcard & 0xf; // my suit is bottom 4 bits 1-4, order is different, but who cares?
-      if (suit == 0) {
-        // if suit wasn't significant though...
-        suit = suititerator++; // Cactus Kev needs a suit!
-        if (suititerator == 5) // loop through available suits
-          suititerator = 1;
-        if (suit == mainsuit) { // if it was the sigificant suit...  Don't want extras!!
-          suit = suititerator++; // skip it
-          if (suititerator == 5) // roll 1-4
-            suititerator = 1;
-        }
-      }
-      // now make Cactus Kev's Card
-      wk[cardnum] = primes[rank] | (rank << 8) | (1 << (suit + 11)) | (1 << (16 + rank));
-    }
-
-    // (DoEval)
-    // James Devlin: replaced all calls to Cactus Kev's eval_5cards with calls to
-    // Senzee's improved eval_5hand_fast
-
-    switch (numevalcards) { // run Cactus Keys routines
-    case 5:
-      holdrank = eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[4]);
-      break;
-      // if 6 cards I would like to find Result for them
-      // Cactus Key is 1 = highest - 7362 lowest
-      // I need to get the min for the permutations
-    case 6:
-      holdrank = eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[4]);
-      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[5]));
-      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[2], wk[4], wk[5]));
-      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[3], wk[4], wk[5]));
-      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[2], wk[3], wk[4], wk[5]));
-      holdrank = min(holdrank, eval_5hand_fast(wk[1], wk[2], wk[3], wk[4], wk[5]));
-      break;
-    case 7:
-      holdrank = eval_7hand(wk);
-      break;
-    default: // problem!!  shouldn't hit this...
-      printf("    Problem with numcards = %d!!\n", numcards);
-      break;
-    }
-
-    // (DoEval)
-    // I would like to change the format of Catus Kev's ret value to:
-    // hhhhrrrrrrrrrrrr   hhhh = 1 high card -> 9 straight flush
-    //                    r..r = rank within the above	1 to max of 2861
-    result = 7463 - holdrank; // now the worst hand = 1
-
-    // clang-format off
-    if      (result < 1278) result = result -    0 + 4096 * 1;  // 1277 high card
-    else if (result < 4138) result = result - 1277 + 4096 * 2;  // 2860 one pair
-    else if (result < 4996) result = result - 4137 + 4096 * 3;  //  858 two pair
-    else if (result < 5854) result = result - 4995 + 4096 * 4;  //  858 three-kind
-    else if (result < 5864) result = result - 5853 + 4096 * 5;  //   10 straights
-    else if (result < 7141) result = result - 5863 + 4096 * 6;  // 1277 flushes
-    else if (result < 7297) result = result - 7140 + 4096 * 7;  //  156 full house
-    else if (result < 7453) result = result - 7296 + 4096 * 8;  //  156 four-kind
-    else                    result = result - 7452 + 4096 * 9;  //   10 str.flushes
-    // clang-format on
+  if (!IDin) { // shortcut if we have a bad ID
+    return result;
   }
+
+  // if I have a good ID then do it...
+  for (cardnum = 0; cardnum < 7; cardnum++) {
+    // convert all 7 cards (0s are ok)
+    holdcards[cardnum] = (int) ((IDin >> (8 * cardnum)) & 0xff);
+    if (holdcards[cardnum] == 0) break; // once I hit a 0 I know I am done
+    numevalcards++;
+    // if not 0 then count the card
+    if (suit = holdcards[cardnum] & 0xf) {
+      // find out what suit (if any) was significant and remember it
+      mainsuit = suit;
+    }
+  }
+
+  // (DoEval)
+
+  for (cardnum = 0; cardnum < numevalcards; cardnum++) {
+    // just have numcards...
+    wkcard = holdcards[cardnum];
+
+    // convert to cactus kevs way!!
+    // ref http://www.suffecool.net/poker/evaluator.html
+    //   +--------+--------+--------+--------+
+    //   |xxxbbbbb|bbbbbbbb|cdhsrrrr|xxpppppp|
+    //   +--------+--------+--------+--------+
+    //   p = prime number of rank (deuce=2,trey=3,four=5,five=7,...,ace=41)
+    //   r = rank of card (deuce=0,trey=1,four=2,five=3,...,ace=12)
+    //   cdhs = suit of card
+    //   b = bit turned on depending on rank of card
+
+    rank = (wkcard >> 4) - 1; // my rank is top 4 bits 1-13 so convert
+    suit = wkcard & 0xf; // my suit is bottom 4 bits 1-4, order is different, but who cares?
+    if (suit == 0) {
+      // if suit wasn't significant though...
+      suit = suititerator++; // Cactus Kev needs a suit!
+      if (suititerator == 5) // loop through available suits
+        suititerator = 1;
+      if (suit == mainsuit) { // if it was the sigificant suit...  Don't want extras!!
+        suit = suititerator++; // skip it
+        if (suititerator == 5) // roll 1-4
+          suititerator = 1;
+      }
+    }
+    // now make Cactus Kev's Card
+    wk[cardnum] = primes[rank] | (rank << 8) | (1 << (suit + 11)) | (1 << (16 + rank));
+  }
+
+  // (DoEval)
+  // James Devlin: replaced all calls to Cactus Kev's eval_5cards with calls to
+  // Senzee's improved eval_5hand_fast
+
+  switch (numevalcards) { // run Cactus Keys routines
+  case 5:
+    holdrank = eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[4]);
+    break;
+    // if 6 cards I would like to find Result for them
+    // Cactus Key is 1 = highest - 7362 lowest
+    // I need to get the min for the permutations
+  case 6:
+    holdrank = eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[4]);
+    holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[5]));
+    holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[2], wk[4], wk[5]));
+    holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[3], wk[4], wk[5]));
+    holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[2], wk[3], wk[4], wk[5]));
+    holdrank = min(holdrank, eval_5hand_fast(wk[1], wk[2], wk[3], wk[4], wk[5]));
+    break;
+  case 7:
+    holdrank = eval_7hand(wk);
+    break;
+  default: // problem!!  shouldn't hit this...
+    printf("    Problem with numcards = %d!!\n", numcards);
+    break;
+  }
+
+  // (DoEval)
+  // I would like to change the format of Catus Kev's ret value to:
+  // hhhhrrrrrrrrrrrr   hhhh = 1 high card -> 9 straight flush
+  //                    r..r = rank within the above	1 to max of 2861
+  result = 7463 - holdrank; // now the worst hand = 1
+
+  // clang-format off
+  if      (result < 1278) result = result -    0 + 4096 * 1;  // 1277 high card
+  else if (result < 4138) result = result - 1277 + 4096 * 2;  // 2860 one pair
+  else if (result < 4996) result = result - 4137 + 4096 * 3;  //  858 two pair
+  else if (result < 5854) result = result - 4995 + 4096 * 4;  //  858 three-kind
+  else if (result < 5864) result = result - 5853 + 4096 * 5;  //   10 straights
+  else if (result < 7141) result = result - 5863 + 4096 * 6;  // 1277 flushes
+  else if (result < 7297) result = result - 7140 + 4096 * 7;  //  156 full house
+  else if (result < 7453) result = result - 7296 + 4096 * 8;  //  156 four-kind
+  else                    result = result - 7452 + 4096 * 9;  //   10 str.flushes
+  // clang-format on
+
   return result; // now a handrank that I like
 }
 
