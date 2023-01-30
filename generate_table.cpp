@@ -19,7 +19,6 @@
 // http://archives1.twoplustwo.com/showflat.php?Cat=0&Number=8513906
 // https://web.archive.org/web/20111103160502/http://www.codingthewheel.com/archives/poker-hand-evaluator-roundup#2p2
 
-
 #include "poker.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,23 +26,23 @@
 #include <time.h>
 
 const char HandRanks[][16] = {
-  "BAD!!",//0
-  "High Card",//1
-  "Pair",//2
-  "Two Pair",//3
-  "Three of a Kind",//4
-  "Straight",//5
-  "Flush",//6
-  "Full House",//7
-  "Four of a Kind",//8
-  "Straight Flush"//9
- };
+    "BAD!!", // 0
+    "High Card", // 1
+    "Pair", // 2
+    "Two Pair", // 3
+    "Three of a Kind", // 4
+    "Straight", // 5
+    "Flush", // 6
+    "Full House", // 7
+    "Four of a Kind", // 8
+    "Straight Flush" // 9
+};
 
 #define LARGE_INTEGER int64_t
-#define int64 int64_t
+#define int64         int64_t
 
-
-inline int min(int const x, int const y) {
+inline int
+min(int const x, int const y) {
   return y < x ? y : x;
 }
 
@@ -55,14 +54,14 @@ int numcards = 0;
 int maxHR = 0;
 int64 maxID = 0;
 
-
-int64 MakeID(int64 IDin, int newcard) {
+int64
+MakeID(int64 IDin, int newcard) {
   // returns a 64-bit hand ID, for up to 8 cards, stored 1 per byte.
 
   int64 ID = 0;
   int suitcount[4 + 1];
   int rankcount[13 + 1];
-  int wk[8];  // intentially keeping one as a 0 end
+  int wk[8]; // intentially keeping one as a 0 end
   int cardnum;
   int getout = 0;
 
@@ -73,11 +72,11 @@ int64 MakeID(int64 IDin, int newcard) {
   // can't have more than 6 cards!
   for (cardnum = 0; cardnum < 6; cardnum++) {
     // leave the 0 hole for new card
-    wk[cardnum + 1] =  (int) ((IDin >> (8 * cardnum)) & 0xff);
+    wk[cardnum + 1] = (int) ((IDin >> (8 * cardnum)) & 0xff);
   }
 
   // my cards are 2c = 1, 2d = 2  ... As = 52
-  newcard--;  // make 0 based!
+  newcard--; // make 0 based!
 
   // add next card. formats card to rrrr00ss
   wk[0] = (((newcard >> 2) + 1) << 4) + (newcard & 3) + 1;
@@ -94,8 +93,8 @@ int64 MakeID(int64 IDin, int newcard) {
     }
   }
   if (getout) return 0; // duplicated another card (ignore this one)
-
-// (MakeID)
+
+  
 
   // for suit to be significant, need to have n-2 of same suit
   int needsuited = numcards - 2;
@@ -114,20 +113,21 @@ int64 MakeID(int64 IDin, int newcard) {
   // if we don't have at least 2 cards of the same suit for 4,
   // we make this card suit 0.
   if (needsuited > 1) {
-    for (cardnum = 0; cardnum < numcards; cardnum++) {  // for each card
+    for (cardnum = 0; cardnum < numcards; cardnum++) { // for each card
       if (suitcount[wk[cardnum] & 0xf] < needsuited) {
-	// check suitcount to the number I need to have suits significant
-	// if not enough - 0 out the suit - now this suit would be a 0 vs 1-4
-	wk[cardnum] &= 0xf0;
+        // check suitcount to the number I need to have suits significant
+        // if not enough - 0 out the suit - now this suit would be a 0 vs 1-4
+        wk[cardnum] &= 0xf0;
       }
     }
   }
-
-// (MakeID)
 
+  
+
+// clang-format off
   // Sort Using XOR.  Netwk for N=7, using Bose-Nelson Algorithm:
   // Thanks to the thread!
-#define SWAP(I,J) {if (wk[I] < wk[J]) {wk[I]^=wk[J]; wk[J]^=wk[I]; wk[I]^=wk[J];}}
+  #define SWAP(I,J) {if (wk[I] < wk[J]) {wk[I]^=wk[J]; wk[J]^=wk[I]; wk[I]^=wk[J];}}
 
   SWAP(0, 4); SWAP(1, 5); SWAP(2, 6); SWAP(0, 2); SWAP(1, 3);
   SWAP(4, 6); SWAP(2, 4); SWAP(3, 5); SWAP(0, 1); SWAP(2, 3);
@@ -144,10 +144,14 @@ int64 MakeID(int64 IDin, int newcard) {
     ((int64) wk[4] << 32) +
     ((int64) wk[5] << 40) +
     ((int64) wk[6] << 48);
+
+  // clang-format on
+
   return ID;
 }
-
-int SaveID(int64 ID) {
+
+int
+SaveID(int64 ID) {
   // this inserts a hand ID into the IDs array.
 
   if (ID == 0) return 0; // don't use up a record for a 0!
@@ -155,7 +159,7 @@ int SaveID(int64 ID) {
   // take care of the most likely first goes on the end...
   if (ID >= maxID) {
     if (ID > maxID) { // greater than create new else it was the last one!
-      IDs[numIDs++] = ID;  // add the new ID
+      IDs[numIDs++] = ID; // add the new ID
       maxID = ID;
     }
     return numIDs - 1;
@@ -170,21 +174,24 @@ int SaveID(int64 ID) {
   while (high - low > 1) {
     holdtest = (high + low + 1) / 2;
     testval = IDs[holdtest] - ID;
-    if (testval > 0) high = holdtest;
-    else if (testval < 0) low = holdtest;
-    else return holdtest;   // got it!!
+    if (testval > 0)
+      high = holdtest;
+    else if (testval < 0)
+      low = holdtest;
+    else
+      return holdtest; // got it!!
   }
   // it couldn't be found so must be added to the current location (high)
   // make space...  // don't expect this much!
   memmove(&IDs[high + 1], &IDs[high], (numIDs - high) * sizeof(IDs[0]));
 
-  IDs[high] = ID;   // do the insert into the hole created
+  IDs[high] = ID; // do the insert into the hole created
   numIDs++;
   return high;
 }
 
-
-int DoEval(int64 IDin) {
+int
+DoEval(int64 IDin) {
   // converts a 64bit handID to an absolute ranking.
 
   // I guess I have some explaining to do here...
@@ -196,17 +203,18 @@ int DoEval(int64 IDin) {
   int wkcard;
   int rank;
   int suit;
-  int mainsuit = 20;  // just something that will never hit...
-  // TODO: need to eliminate the main suit from the iterator
-  //int suititerator = 0;
-  int suititerator = 1; // changed as per Ray Wotton's comment at http://archives1.twoplustwo.com/showflat.php?Cat=0&Number=8513906&page=0&fpart=18&vc=1
+  int mainsuit = 20; // just something that will never hit...
+  // TODO: need to eliminate the main suit from the iterator
+  // int suititerator = 0;
+  int suititerator = 1; // changed as per Ray Wotton's comment at
+                        // http://archives1.twoplustwo.com/showflat.php?Cat=0&Number=8513906&page=0&fpart=18&vc=1
   int holdrank;
-  int wk[8];  // "work" intentially keeping one as a 0 end
+  int wk[8]; // "work" intentially keeping one as a 0 end
   int holdcards[8];
   int numevalcards = 0;
 
   // See Cactus Kevs page for explainations for this type of stuff...
-  const int primes[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 };
+  const int primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41};
 
   memset(wk, 0, sizeof(wk));
   memset(holdcards, 0, sizeof(holdcards));
@@ -214,17 +222,17 @@ int DoEval(int64 IDin) {
   if (IDin) { // if I have a good ID then do it...
     for (cardnum = 0; cardnum < 7; cardnum++) {
       // convert all 7 cards (0s are ok)
-      holdcards[cardnum] =  (int) ((IDin >> (8 * cardnum)) & 0xff);
-      if (holdcards[cardnum] == 0) break;	// once I hit a 0 I know I am done
+      holdcards[cardnum] = (int) ((IDin >> (8 * cardnum)) & 0xff);
+      if (holdcards[cardnum] == 0) break; // once I hit a 0 I know I am done
       numevalcards++;
       // if not 0 then count the card
       if (suit = holdcards[cardnum] & 0xf) {
-	// find out what suit (if any) was significant and remember it
-	mainsuit = suit;
+        // find out what suit (if any) was significant and remember it
+        mainsuit = suit;
       }
     }
-
-// (DoEval)
+
+    // (DoEval)
 
     for (cardnum = 0; cardnum < numevalcards; cardnum++) {
       // just have numcards...
@@ -240,59 +248,57 @@ int DoEval(int64 IDin) {
       //   cdhs = suit of card
       //   b = bit turned on depending on rank of card
 
-      rank = (wkcard >> 4) - 1;	 // my rank is top 4 bits 1-13 so convert
-      suit = wkcard & 0xf;  // my suit is bottom 4 bits 1-4, order is different, but who cares?
+      rank = (wkcard >> 4) - 1; // my rank is top 4 bits 1-13 so convert
+      suit = wkcard & 0xf; // my suit is bottom 4 bits 1-4, order is different, but who cares?
       if (suit == 0) {
-	// if suit wasn't significant though...
-	suit = suititerator++;   // Cactus Kev needs a suit!
-	if (suititerator == 5)	 // loop through available suits
-	  suititerator = 1;
-	if (suit == mainsuit) {   // if it was the sigificant suit...  Don't want extras!!
-	  suit = suititerator++;    // skip it
-	  if (suititerator == 5)	  // roll 1-4
-	    suititerator = 1;
-	}
+        // if suit wasn't significant though...
+        suit = suititerator++; // Cactus Kev needs a suit!
+        if (suititerator == 5) // loop through available suits
+          suititerator = 1;
+        if (suit == mainsuit) { // if it was the sigificant suit...  Don't want extras!!
+          suit = suititerator++; // skip it
+          if (suititerator == 5) // roll 1-4
+            suititerator = 1;
+        }
       }
       // now make Cactus Kev's Card
       wk[cardnum] = primes[rank] | (rank << 8) | (1 << (suit + 11)) | (1 << (16 + rank));
     }
-
-// (DoEval)
+
+    // (DoEval)
     // James Devlin: replaced all calls to Cactus Kev's eval_5cards with calls to
     // Senzee's improved eval_5hand_fast
 
-    switch (numevalcards) {  // run Cactus Keys routines
-    case 5 :  holdrank =     eval_5hand_fast(wk[0],wk[1],wk[2],wk[3],wk[4]);
+    switch (numevalcards) { // run Cactus Keys routines
+    case 5:
+      holdrank = eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[4]);
       break;
       // if 6 cards I would like to find Result for them
       // Cactus Key is 1 = highest - 7362 lowest
       // I need to get the min for the permutations
-    case 6 :
-      holdrank = eval_5hand_fast(wk[0],wk[1],wk[2],wk[3],wk[4]);
-      holdrank = min( holdrank,
-		      eval_5hand_fast(wk[0],wk[1],wk[2],wk[3],wk[5]));
-      holdrank = min( holdrank,
-		      eval_5hand_fast(wk[0],wk[1],wk[2],wk[4],wk[5]));
-      holdrank = min( holdrank,
-		      eval_5hand_fast(wk[0],wk[1],wk[3],wk[4],wk[5]));
-      holdrank = min( holdrank,
-		      eval_5hand_fast(wk[0],wk[2],wk[3],wk[4],wk[5]));
-      holdrank = min( holdrank,
-		      eval_5hand_fast(wk[1],wk[2],wk[3],wk[4],wk[5]));
+    case 6:
+      holdrank = eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[4]);
+      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[2], wk[3], wk[5]));
+      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[2], wk[4], wk[5]));
+      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[1], wk[3], wk[4], wk[5]));
+      holdrank = min(holdrank, eval_5hand_fast(wk[0], wk[2], wk[3], wk[4], wk[5]));
+      holdrank = min(holdrank, eval_5hand_fast(wk[1], wk[2], wk[3], wk[4], wk[5]));
       break;
-    case 7 : holdrank = eval_7hand(wk);
+    case 7:
+      holdrank = eval_7hand(wk);
       break;
-    default : // problem!!  shouldn't hit this...
+    default: // problem!!  shouldn't hit this...
       printf("    Problem with numcards = %d!!\n", numcards);
       break;
     }
-
-// (DoEval)
+
+    // (DoEval)
     // I would like to change the format of Catus Kev's ret value to:
     // hhhhrrrrrrrrrrrr   hhhh = 1 high card -> 9 straight flush
     //                    r..r = rank within the above	1 to max of 2861
-    result = 7463 - holdrank;  // now the worst hand = 1
+    result = 7463 - holdrank; // now the worst hand = 1
 
+    // clang-format off
     if      (result < 1278) result = result -    0 + 4096 * 1;  // 1277 high card
     else if (result < 4138) result = result - 1277 + 4096 * 2;  // 2860 one pair
     else if (result < 4996) result = result - 4137 + 4096 * 3;  //  858 two pair
@@ -302,16 +308,17 @@ int DoEval(int64 IDin) {
     else if (result < 7297) result = result - 7140 + 4096 * 7;  //  156 full house
     else if (result < 7453) result = result - 7296 + 4096 * 8;  //  156 four-kind
     else                    result = result - 7452 + 4096 * 9;  //   10 str.flushes
+    // clang-format on
   }
-  return result;  // now a handrank that I like
+  return result; // now a handrank that I like
 }
 
-
-int main(int argc, char* argv[]) {
+int
+main(int argc, char *argv[]) {
   int IDslot, card = 0, count = 0;
   int64 ID;
 
-  clock_t timer = clock();   // remember when I started
+  clock_t timer = clock(); // remember when I started
 
   // Store the count of each type of hand (One Pair, Flush, etc)
   int handTypeSum[10];
@@ -321,7 +328,6 @@ int main(int argc, char* argv[]) {
   memset(IDs, 0, sizeof(IDs));
   memset(HR, 0, sizeof(HR));
 
-
   // step through the ID array - always shifting the current ID and
   // adding 52 cards to the end of the array.
   // when I am at 7 cards put the Hand Rank in!!
@@ -329,8 +335,6 @@ int main(int argc, char* argv[]) {
 
   int IDnum;
   int holdid;
-
-// main()
 
   printf("\nGetting Card IDs!\n");
 
@@ -343,14 +347,13 @@ int main(int argc, char* argv[]) {
     // start at 1 so I have a zero catching entry (just in case)
     for (card = 1; card < 53; card++) {
       // the ids above contain cards upto the current card.  Now add a new card
-      ID = MakeID(IDs[IDnum], card);   // get the new ID for it
+      ID = MakeID(IDs[IDnum], card); // get the new ID for it
       // and save it in the list if I am not on the 7th card
       if (numcards < 7) holdid = SaveID(ID);
     }
-    printf("\rID - %d", IDnum);	  // show progress -- this counts up to 612976
+    printf("\rID - %d", IDnum); // show progress -- this counts up to 612976
   }
-
-// main()
+
   printf("\nSetting HandRanks!\n");
 
   // this is as above, but will not add anything to the ID list, so it is stable
@@ -360,14 +363,14 @@ int main(int argc, char* argv[]) {
       ID = MakeID(IDs[IDnum], card);
 
       if (numcards < 7) {
-	// when in the index mode (< 7 cards) get the id to save
-	IDslot = SaveID(ID) * 53 + 53;
+        // when in the index mode (< 7 cards) get the id to save
+        IDslot = SaveID(ID) * 53 + 53;
       } else {
-	// if I am at the 7th card, get the equivalence class ("hand rank") to save
-	IDslot = DoEval(ID);
+        // if I am at the 7th card, get the equivalence class ("hand rank") to save
+        IDslot = DoEval(ID);
       }
 
-      maxHR = IDnum * 53 + card + 53;	// find where to put it
+      maxHR = IDnum * 53 + card + 53; // find where to put it
       HR[maxHR] = IDslot; // and save the pointer to the next card or the handrank
     }
 
@@ -379,19 +382,18 @@ int main(int argc, char* argv[]) {
       HR[IDnum * 53 + 53] = DoEval(IDs[IDnum]);
     }
 
-    printf("\rID - %d", IDnum);	// show the progress -- counts to 612976 again
+    printf("\rID - %d", IDnum); // show the progress -- counts to 612976 again
   }
 
-  printf("\nNumber IDs = %d\nmaxHR = %d\n", numIDs, maxHR);  // for warm fuzzys
+  printf("\nNumber IDs = %d\nmaxHR = %d\n", numIDs, maxHR); // for warm fuzzys
 
-  timer = clock() - timer;  // end the timer
+  timer = clock() - timer; // end the timer
 
-  printf("Training seconds = %.2f\n", (float)timer/CLOCKS_PER_SEC);
-
-// main()
-  LARGE_INTEGER timings, endtimings;	// for high precision timing
+  printf("Training seconds = %.2f\n", (float) timer / CLOCKS_PER_SEC);
 
-  timer = clock();   // now get current time for Testing!
+  LARGE_INTEGER timings, endtimings; // for high precision timing
+
+  timer = clock(); // now get current time for Testing!
 
   // another algorithm right off the thread
 
@@ -401,24 +403,24 @@ int main(int argc, char* argv[]) {
   // QueryPerformanceCounter(&timings);
   // start High Precision clock
   for (c0 = 1; c0 < 53; c0++) {
-    u0 = HR[53+c0];
-    for (c1 = c0+1; c1 < 53; c1++) {
-      u1 = HR[u0+c1];
-      for (c2 = c1+1; c2 < 53; c2++) {
-	u2 = HR[u1+c2];
-	for (c3 = c2+1; c3 < 53; c3++) {
-	  u3 = HR[u2+c3];
-	  for (c4 = c3+1; c4 < 53; c4++) {
-	    u4 = HR[u3+c4];
-	    for (c5 = c4+1; c5 < 53; c5++) {
-	      u5 = HR[u4+c5];
-	      for (c6 = c5+1; c6 < 53; c6++) {
-		handTypeSum[HR[u5+c6] >> 12]++;
-		count++;
-	      }
-	    }
-	  }
-	}
+    u0 = HR[53 + c0];
+    for (c1 = c0 + 1; c1 < 53; c1++) {
+      u1 = HR[u0 + c1];
+      for (c2 = c1 + 1; c2 < 53; c2++) {
+        u2 = HR[u1 + c2];
+        for (c3 = c2 + 1; c3 < 53; c3++) {
+          u3 = HR[u2 + c3];
+          for (c4 = c3 + 1; c4 < 53; c4++) {
+            u4 = HR[u3 + c4];
+            for (c5 = c4 + 1; c5 < 53; c5++) {
+              u5 = HR[u4 + c5];
+              for (c6 = c5 + 1; c6 < 53; c6++) {
+                handTypeSum[HR[u5 + c6] >> 12]++;
+                count++;
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -426,27 +428,27 @@ int main(int argc, char* argv[]) {
   //	QueryPerformanceCounter(&endtimings);
   // end the high precision clock
 
-  timer = clock() - timer;  // get the time in this
+  timer = clock() - timer; // get the time in this
 
-  for (int i = 0; i <= 9; i++)  // display the results
+  for (int i = 0; i <= 9; i++) // display the results
     printf("\n%16s = %d", HandRanks[i], handTypeSum[i]);
 
   printf("\nTotal Hands = %d\n", count);
-
-// main()
+
   //	int64 clocksused = (int64)endtimings.QuadPart - (int64)
   //  timings.QuadPart;  // calc clocks used from the High Precision clock
 
   // and display the clock results
-  //	printf("\nValidation seconds = %.4lf\nTotal HighPrecision Clocks = %I64d\nHighPrecision clocks per lookup = %lf\n", (double)timer/CLOCKS_PER_SEC, clocksused, (double) clocksused /  133784560.0) ;
+  //	printf("\nValidation seconds = %.4lf\nTotal HighPrecision Clocks = %I64d\nHighPrecision clocks per lookup =
+  //%lf\n", (double)timer/CLOCKS_PER_SEC, clocksused, (double) clocksused /  133784560.0) ;
 
   // output the array now that I have it!!
-  FILE * fout = fopen("HandRanks.dat", "wb");
+  FILE *fout = fopen("HandRanks.dat", "wb");
   if (!fout) {
     printf("Problem creating the Output File!\n");
     return 1;
   }
-  fwrite(HR, sizeof(HR), 1, fout);  // big write, but quick
+  fwrite(HR, sizeof(HR), 1, fout); // big write, but quick
 
   fclose(fout);
 
