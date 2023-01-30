@@ -226,7 +226,7 @@ DoEval(int64 IDin) {
     if (holdcards[cardnum] == 0) break; // once I hit a 0 I know I am done
     numevalcards++;
     // if not 0 then count the card
-    if (suit = holdcards[cardnum] & 0xf) {
+    if ((suit = holdcards[cardnum] & 0xf)) {
       // find out what suit (if any) was significant and remember it
       mainsuit = suit;
     }
